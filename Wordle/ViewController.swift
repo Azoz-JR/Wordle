@@ -8,95 +8,19 @@
 import UIKit
 
 class ViewController: UIViewController {
-
-    var currentWordLabels = [UILabel]()
-    var currentWordView: UIView!
+    
+    var contentView = ContentView()
+    
     var currentWord = [Character]()
-    var letterButtons = [UIButton]()
     let letters: [Character] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
     var words = [String]()
     var currentSolution = ""
     var usedButtons = [UIButton]()
-    var scoreLabels = [UILabel]()
     var lives = 7
     
     
     override func loadView() {
-        view = UIView()
-        view.backgroundColor = UIColor.secondarySystemBackground
-
-        let scoreView = UIView()
-        scoreView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scoreView)
-                
-        currentWordView = UIView()
-        currentWordView.translatesAutoresizingMaskIntoConstraints = false
-        currentWordView.setContentHuggingPriority(UILayoutPriority(1), for: .vertical)
-        view.addSubview(currentWordView)
-        
-        let buttonsView = UIView()
-        buttonsView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(buttonsView)
-        
-        
-        NSLayoutConstraint.activate([
-            scoreView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scoreView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
-            scoreView.heightAnchor.constraint(equalToConstant: 50),
-            scoreView.widthAnchor.constraint(equalToConstant: 210),
-            
-            currentWordView.topAnchor.constraint(equalTo: scoreView.bottomAnchor, constant: 100),
-            currentWordView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            currentWordView.widthAnchor.constraint(equalToConstant: 225),
-            
-
-            buttonsView.widthAnchor.constraint(equalToConstant: 400),
-            buttonsView.heightAnchor.constraint(equalToConstant: 300),
-            buttonsView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            buttonsView.topAnchor.constraint(equalTo: currentWordView.bottomAnchor, constant: 100),
-            buttonsView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40)
-            
-        ])
-        
-        let scoreWidth = 30
-        let scoreHeight = 50
-        
-        for column in 0..<7 {
-            let scoreLabel = UILabel()
-            scoreLabel.font = UIFont.systemFont(ofSize: 20)
-            scoreLabel.text = "❤️"
-            
-            let frame = CGRect(x: column * scoreWidth, y: 0, width: scoreWidth - 3, height: scoreHeight)
-            scoreLabel.frame = frame
-            
-            scoreView.addSubview(scoreLabel)
-            scoreLabels.append(scoreLabel)
-        }
-        
-        let height = 75
-        let width = 57
-        
-        for row in 0..<4 {
-            for column in 0..<7 {
-                let letterButton = UIButton(type: .system)
-                letterButton.titleLabel?.font = UIFont.systemFont(ofSize: 36)
-                letterButton.setTitle("Z", for: .normal)
-                letterButton.addTarget(self, action: #selector(letterTapped), for: .touchUpInside)
-                letterButton.layer.borderWidth = 1
-                letterButton.layer.borderColor = UIColor.lightGray.cgColor
-                
-                let frame = CGRect(x: (column * width), y: (row * height), width: width - 3, height: height - 3)
-                letterButton.frame = frame
-                
-                buttonsView.addSubview(letterButton)
-                letterButtons.append(letterButton)
-            }
-        }
-        
-        letterButtons[21].removeFromSuperview()
-        letterButtons[27].removeFromSuperview()
-        letterButtons.remove(at: 21)
-        
+        view = contentView
     }
     
     override func viewDidLoad() {
@@ -107,6 +31,8 @@ class ViewController: UIViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Restart", style: .plain, target: self, action: #selector(playAgain))
+        
+        contentView.letterButtons.forEach { $0.addTarget(self, action: #selector(letterTapped), for: .touchUpInside) }
         
         settingUp()
                 
@@ -125,7 +51,7 @@ class ViewController: UIViewController {
         
         DispatchQueue.main.async { [weak self] in
             for i in 0..<(self?.letters.count)! {
-                self?.letterButtons[i].setTitle(String((self?.letters[i])!), for: .normal)
+                self?.contentView.letterButtons[i].setTitle(String((self?.letters[i])!), for: .normal)
             }
             
             guard let count = self?.currentSolution.count, count != 0 else { return }
@@ -149,8 +75,8 @@ class ViewController: UIViewController {
             let frame = CGRect(x: (index * size), y: 0, width: size - 3, height: size - 3)
             letterLabel.frame = frame
             
-            currentWordView.addSubview(letterLabel)
-            currentWordLabels.append(letterLabel)
+            contentView.currentWordView.addSubview(letterLabel)
+            contentView.currentWordLabels.append(letterLabel)
         }
         
     }
@@ -166,7 +92,11 @@ class ViewController: UIViewController {
                 if letter == Character(buttonTitle) {
                     currentWord[index] = letter
                     UIView.animate(withDuration: 0.25) {
-                        self.currentWordLabels[index].text = String(letter)
+                        self.contentView.currentWordLabels[index].alpha = 0
+                        //self.contentView.currentWordLabels[index].text = String(letter)
+                    } completion: { _ in
+                        self.contentView.currentWordLabels[index].text = String(letter)
+                        self.contentView.currentWordLabels[index].alpha = 1
                     }
                 }
             }
@@ -183,7 +113,7 @@ class ViewController: UIViewController {
     
     func wrongAnswer() {
         lives -= 1
-        scoreLabels[lives].isHidden = true
+        contentView.scoreLabels[lives].isHidden = true
         if lives != 0 {
             let ac = UIAlertController(title: "Wrong letter", message: "Remaining tries: \(lives)", preferredStyle: .alert)
             ac.addAction(UIAlertAction(title: "Ok", style: .default))
@@ -200,11 +130,11 @@ class ViewController: UIViewController {
                 
         currentWord = Array(repeating: Character("?"), count: 5)
         
-        currentWordLabels.forEach { $0.text = "" }
+        contentView.currentWordLabels.forEach { $0.text = "" }
         
         lives = 7
         
-        for i in scoreLabels {
+        for i in contentView.scoreLabels {
             i.isHidden = false
         }
         for i in usedButtons {
@@ -220,4 +150,3 @@ class ViewController: UIViewController {
 
 
 }
-
